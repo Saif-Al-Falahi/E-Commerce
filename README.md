@@ -210,4 +210,4 @@ The application uses SQLite as its database and includes the following tables:
 
 ## License
 
-This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced software licensed under the Saif License (just a joke (for legal purposes))
