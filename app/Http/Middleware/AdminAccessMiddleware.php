@@ -7,6 +7,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\QueryException;
 
 class AdminAccessMiddleware
 {
@@ -17,7 +18,10 @@ class AdminAccessMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check() || !Auth::user()->hasRole('admin')) {
+        /** @var ?User $user */
+        $user = Auth::user();
+        
+        if (!$user || !$user->hasRole('admin')) {
             return redirect()->route('home')->with('error', 'Access denied. You do not have permission to access this area.');
         }
 
