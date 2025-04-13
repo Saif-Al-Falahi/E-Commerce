@@ -13,6 +13,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call([
+            RoleSeeder::class,
+        ]);
+
         // Create default roles if they don't exist
         $adminRole = DB::table('roles')->where('name', 'admin')->first();
         if (!$adminRole) {

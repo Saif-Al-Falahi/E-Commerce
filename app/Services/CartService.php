@@ -79,34 +79,75 @@ final class CartService
      * Update the quantity of an item in the cart.
      *
      * @throws \InvalidArgumentException If quantity exceeds stock or is invalid.
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If cart item does not belong to the cart.
+     * @throws \InvalidArgumentException If cart item does not belong to the cart.
      */
-    public function updateItemQuantity(Cart $cart, int $cartItemId, int $quantity): CartItem
+    public function updateItemQuantity(Cart $cart, CartItem $cartItem, int $quantity): CartItem
     {
+        Log::info('Updating cart item quantity', [
+            'cart_id' => $cart->id,
+            'cart_item_id' => $cartItem->id,
+            'old_quantity' => $cartItem->quantity,
+            'new_quantity' => $quantity
+        ]);
+
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('Quantity must be positive.');
         }
         
         // Ensure the cart item belongs to the provided cart
-        $cartItem = $cart->cartItems()->findOrFail($cartItemId);
+        if ($cartItem->cart_id !== $cart->id) {
+            Log::warning('Cart item does not belong to cart', [
+                'cart_id' => $cart->id,
+                'cart_item_id' => $cartItem->id,
+                'cart_item_cart_id' => $cartItem->cart_id
+            ]);
+            throw new \InvalidArgumentException('Cart item does not belong to this cart.');
+        }
 
         if ($quantity > $cartItem->product->stock) {
             throw new \InvalidArgumentException('Not enough stock available.');
         }
 
-        $cartItem->update(['quantity' => $quantity]);
-        return $cartItem;
+        DB::transaction(function () use ($cartItem, $quantity) {
+            $cartItem->quantity = $quantity;
+            $cartItem->save();
+            Log::info('Cart item quantity updated', [
+                'cart_item_id' => $cartItem->id,
+                'new_quantity' => $cartItem->quantity
+            ]);
+        });
+
+        return $cartItem->refresh();
     }
 
     /**
      * Remove an item from the cart.
      *
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If cart item does not belong to the cart.
+     * @throws \InvalidArgumentException If cart item does not belong to the cart.
      */
-    public function removeItem(Cart $cart, int $cartItemId): void
+    public function removeItem(Cart $cart, CartItem $cartItem): void
     {
-        $cartItem = $cart->cartItems()->findOrFail($cartItemId);
-        $cartItem->delete();
+        Log::info('Removing cart item', [
+            'cart_id' => $cart->id,
+            'cart_item_id' => $cartItem->id
+        ]);
+
+        // Ensure the cart item belongs to the provided cart
+        if ($cartItem->cart_id !== $cart->id) {
+            Log::warning('Cart item does not belong to cart', [
+                'cart_id' => $cart->id,
+                'cart_item_id' => $cartItem->id,
+                'cart_item_cart_id' => $cartItem->cart_id
+            ]);
+            throw new \InvalidArgumentException('Cart item does not belong to this cart.');
+        }
+
+        DB::transaction(function () use ($cartItem) {
+            $cartItem->delete();
+            Log::info('Cart item deleted', [
+                'cart_item_id' => $cartItem->id
+            ]);
+        });
     }
 
     /**
@@ -121,4 +162,4 @@ final class CartService
              $cart->removeCoupon(); 
          }
     }
-} 
+}

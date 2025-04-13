@@ -78,6 +78,14 @@
                 </div>
 
                 <div>
+                    <label for="per_user_limit" class="block text-sm font-medium text-gray-700">Per-User Limit</label>
+                    <input type="number" name="per_user_limit" id="per_user_limit" min="0" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                           value="{{ old('per_user_limit') }}" 
+                           placeholder="Leave empty for unlimited uses per user">
+                </div>
+
+                <div>
                     <label for="starts_at" class="block text-sm font-medium text-gray-700">Start Date</label>
                     <input type="date" name="starts_at" id="starts_at" 
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"

@@ -26,6 +26,7 @@ final class Coupon extends Model
         'value',
         'min_purchase',
         'max_uses',
+        'per_user_limit',
         'starts_at',
         'expires_at',
         'is_active',
@@ -40,6 +41,7 @@ final class Coupon extends Model
         'value' => 'decimal:2',
         'min_purchase' => 'decimal:2',
         'max_uses' => 'integer',
+        'per_user_limit' => 'integer',
         'starts_at' => 'datetime',
         'expires_at' => 'datetime',
         'is_active' => 'boolean',
@@ -80,13 +82,22 @@ final class Coupon extends Model
             return false;
         }
 
-        // Check if user has already used this coupon in any completed order
-        $hasUsedCoupon = $this->users()
-            ->where('user_id', $user->id)
-            ->exists();
+        // Check global usage limit
+        if ($this->max_uses !== null) {
+            $totalUsedCount = $this->users()->count();
+            if ($totalUsedCount >= $this->max_uses) {
+                return false;
+            }
+        }
 
-        if ($hasUsedCoupon) {
-            return false;
+        // Check per-user usage limit
+        if ($this->per_user_limit !== null) {
+            $userUsedCount = $this->users()
+                ->where('user_id', $user->id)
+                ->count();
+            if ($userUsedCount >= $this->per_user_limit) {
+                return false;
+            }
         }
 
         // Check if user has this coupon in an active cart
@@ -97,13 +108,6 @@ final class Coupon extends Model
 
         if ($hasActiveCart) {
             return false;
-        }
-
-        if ($this->max_uses !== null) {
-            $usedCount = $this->users()->count();
-            if ($usedCount >= $this->max_uses) {
-                return false;
-            }
         }
 
         return true;

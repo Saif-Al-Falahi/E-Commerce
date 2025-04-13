@@ -53,7 +53,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Admin Routes - Using middleware and admin guard
-Route::middleware(['auth:admin', 'admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     // Admin Dashboard
     Route::get('/', function () {
         return redirect()->route('admin.products.index');
