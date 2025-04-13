@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-featured e-commerce application built with Laravel. It provides a complete shopping experience with product browsing, cart management, user authentication, order processing, and an admin dashboard.
+This is a full-featured e-commerce application built with Laravel. It provides a complete shopping experience with product browsing, cart management, user authentication, order processing, coupon management, and an admin dashboard.
 
 ## Architecture
 
@@ -25,10 +25,17 @@ The application uses SQLite as its database and includes the following tables:
 5. **cart_items** - Items in shopping carts
    - id, cart_id, product_id, quantity, created_at, updated_at
 
+6. **coupons** - Discount coupons
+   - id, code, type, value, min_purchase, max_discount, starts_at, expires_at, usage_limit, times_used, is_active, created_at, updated_at
+
+7. **cart_coupon** - Pivot table for cart-coupon relationship
+   - cart_id, coupon_id, created_at, updated_at
+
 ### Models and Relationships
 
 1. **User Model**
    - Has one cart
+   - Has many orders
 
 2. **Category Model**
    - Has many products
@@ -36,10 +43,12 @@ The application uses SQLite as its database and includes the following tables:
 3. **Product Model**
    - Belongs to a category
    - Has many cart items
+   - Has formatted price attribute
 
 4. **Cart Model**
    - Belongs to a user
    - Has many cart items
+   - Belongs to many coupons
    - Has a total attribute
    - Uses completed_at to track order completion
 
@@ -47,6 +56,10 @@ The application uses SQLite as its database and includes the following tables:
    - Belongs to a cart
    - Belongs to a product
    - Has a subtotal attribute
+
+6. **Coupon Model**
+   - Belongs to many carts
+   - Has validation rules for usage
 
 ### Controllers
 
@@ -74,6 +87,8 @@ The application uses SQLite as its database and includes the following tables:
    - updateQuantity: Update cart item quantity
    - removeFromCart: Remove item from cart
    - clearCart: Remove all items from cart
+   - applyCoupon: Apply a coupon to the cart
+   - removeCoupon: Remove a coupon from the cart
    - checkout: Process order and reduce product stock
 
 4. **OrderController**
@@ -82,12 +97,47 @@ The application uses SQLite as its database and includes the following tables:
    - adminIndex: Display all orders (admin only)
    - adminShow: Display order details (admin only)
 
-5. **AdminController**
+5. **CouponController**
+   - index: Display all coupons (admin only)
+   - create: Show coupon creation form (admin only)
+   - store: Save a new coupon (admin only)
+   - edit: Show coupon edit form (admin only)
+   - update: Update a coupon (admin only)
+   - destroy: Delete a coupon (admin only)
+
+6. **AdminController**
    - index: Admin dashboard with statistics
    - products: Manage products
    - categories: Manage categories
    - orders: View and manage orders
    - users: Manage user accounts
+   - coupons: Manage discount coupons
+
+### Services
+
+1. **CartService**
+   - getActiveCart: Get or create user's active cart
+   - addItem: Add a product to cart
+   - updateItemQuantity: Update cart item quantity
+   - removeItem: Remove item from cart
+   - clearCart: Remove all items from cart
+   - applyCoupon: Apply a coupon to the cart
+   - removeCoupon: Remove a coupon from the cart
+   - calculateTotal: Calculate cart total with discounts
+
+2. **OrderService**
+   - createOrder: Create a new order from cart
+   - processOrder: Process order and reduce product stock
+
+3. **CouponService**
+   - validateCoupon: Validate coupon code and conditions
+   - applyDiscount: Apply discount to cart total
+
+### Middleware
+
+1. **AdminAccessMiddleware**
+   - Ensures only users with admin role can access admin routes
+   - Redirects non-admin users to home page with error message
 
 ### Views
 
@@ -117,24 +167,59 @@ The application uses SQLite as its database and includes the following tables:
    - admin/orders/index.blade.php: All orders (admin)
    - admin/orders/show.blade.php: Order details with customer info (admin)
 
-6. **Admin Dashboard**
+6. **Coupons**
+   - admin/coupons/index.blade.php: Coupon listing page (admin)
+   - admin/coupons/create.blade.php: Coupon creation form (admin)
+   - admin/coupons/edit.blade.php: Coupon edit form (admin)
+   - admin/coupons/form.blade.php: Reusable coupon form (admin)
+
+7. **Admin Dashboard**
    - dashboard.blade.php: Statistics and recent products
    - products.blade.php: Product management
    - categories.blade.php: Category management
    - orders.blade.php: Order management
+   - coupons.blade.php: Coupon management
 
 ### Authentication
 
 - Uses Laravel's built-in authentication system
 - Supports user registration and login
-- Includes admin role for product/category management
+- Includes admin role for product/category/coupon management
 - Role-based access control via middleware
+- Secure password hashing and validation
+
+### Security Features
+
+- CSRF protection for all forms
+- XSS prevention through proper escaping
+- Input validation using Form Requests
+- Role-based authorization
+- Secure password handling
+- Protection against SQL injection via Eloquent ORM
+- Middleware for route protection
+
+### Testing
+
+The application includes comprehensive tests:
+
+1. **Feature Tests**
+   - Product tests: CRUD operations, authorization, validation
+   - Cart tests: Adding, updating, removing items, applying coupons
+   - Order tests: Creating orders, processing payments
+   - Authentication tests: Login, registration, password reset
+   - Authorization tests: Role-based access control
+
+2. **Unit Tests**
+   - Model tests: Relationships, attributes, scopes
+   - Service tests: Business logic, calculations
+   - Helper tests: Utility functions
 
 ### Styling
 
 - Uses Tailwind CSS for styling
 - Custom CSS classes defined in resources/css/app.css
 - Responsive design for mobile and desktop
+- Modern UI components for enhanced user experience
 
 ## Setup Instructions
 
@@ -180,6 +265,10 @@ The application uses SQLite as its database and includes the following tables:
     ```
     php artisan serve
     ```
+12. Run tests:
+    ```
+    php artisan test
+    ```
 
 ## Features
 
@@ -188,11 +277,14 @@ The application uses SQLite as its database and includes the following tables:
 - Advanced filtering and sorting options
 - Category-based product filtering
 - Product detail pages with images and description
+- Responsive design for all devices
 
 ### Cart and Checkout
 - Shopping cart with quantity adjustment
+- Coupon application for discounts
 - Checkout process with stock reduction
 - Order confirmation and history
+- Secure payment processing
 
 ### User Management
 - User registration and authentication
@@ -200,13 +292,22 @@ The application uses SQLite as its database and includes the following tables:
 - Order history viewing
 - Responsive design for all devices
 
+### Coupon Management
+- Create and manage discount coupons
+- Set coupon types (percentage or fixed amount)
+- Define usage limits and expiration dates
+- Apply coupons to shopping carts
+- Track coupon usage
+
 ### Admin Features
 - Comprehensive admin dashboard
 - Product management (CRUD operations)
 - Category management (CRUD operations)
 - Order management and tracking
 - User management
+- Coupon management
 - Inventory management with stock control
+- Sales reporting and analytics
 
 ## License
 
